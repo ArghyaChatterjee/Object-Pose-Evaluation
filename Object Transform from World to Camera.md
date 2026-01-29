@@ -87,7 +87,7 @@ pixel → camera ray → world ray → volume integral
 * Rendering depth maps
 * Rendering masks
 
-Your code uses it here:
+Code uses it here:
 
 ```python
 render_mesh(camera=self.plotter.camera.copy())
@@ -168,20 +168,6 @@ Which is just a **factored projection matrix**.
 
 ---
 
-## 7️⃣ What it is NOT used for (important)
-
-❌ Robot control
-❌ Motion planning
-❌ Collision checking
-❌ Object grasping
-❌ World-space reasoning
-❌ Pose composition
-❌ TF trees
-
-Those operate purely in **SE(3)**.
-
----
-
 ## In *your* tool specifically
 
 ### Projection matrix is used for:
@@ -199,16 +185,10 @@ Those operate purely in **SE(3)**.
 * updating actor pose
 * exporting object pose
 
-Your pose math lives here:
+Pose math lives here:
 
 ```python
 actor.user_matrix
-```
-
-Not here:
-
-```python
-vtk_camera.GetProjectionTransformMatrix()
 ```
 
 ---
