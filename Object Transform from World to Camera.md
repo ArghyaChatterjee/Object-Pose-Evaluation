@@ -170,7 +170,7 @@ Which is just a **factored projection matrix**.
 
 ---
 
-## In *your* tool specifically
+## In tool specifically
 
 ### Projection matrix is used for:
 
@@ -195,7 +195,7 @@ actor.user_matrix
 
 ---
 
-## Mental model (best takeaway)
+## Mental model
 
 * **Pose matrix** → “Where is the object in 3D?”
 * **View matrix** → “Where is the camera in 3D?”
@@ -205,6 +205,6 @@ Only the **last one touches images**.
 
 ---
 
-## Final one-line answer
+## Conclusion
 
 > The projection matrix is used whenever **pixels matter** (rendering, reprojection, evaluation), and is **never used** when only **3D pose** or **robot motion** matters.
