@@ -1,4 +1,4 @@
-# Vision6D
+# Vision6D Image Mesh Plane Description
 
 This is **faking a pinhole camera in 3D space** so that **moving a mesh in 3D produces the same pixel motion as a real camera**, without doing real projection math.
 
@@ -20,7 +20,7 @@ So:
 
 ---
 
-## What your tool does instead (the “hack”)
+## What Vision6D tool does instead 
 
 Instead of computing that equation explicitly, you:
 
@@ -33,13 +33,11 @@ $$
 
 3. Render everything with a normal 3D camera
 
-Now when a mesh point moves by `Y` at depth `Z`, perspective rendering naturally produces:
+Now, when a mesh point moves by `Y` at depth `Z`, perspective rendering naturally produces:
 
 $$
-\text{screen offset} ;\approx; \frac{f_y \cdot Y}{Z}
+\text{screen offset} \approx \frac{f_y \cdot Y}{Z}
 $$
-
-🎯 **Same math, different path**
 
 ---
 
