@@ -1,12 +1,12 @@
 # Object Pose Evaluation
 A repository for evaluating object pose w.r.t ground truth.
 
-This script is an **evaluation / sanity-check tool**: it compares a **ground-truth object pose** (from BOP/LMO JSON: `cam_R_m2c`, `cam_t_m2c`) against your **annotated/estimated pose** (a 4×4 matrix you typed in), and reports:
+This script is an **evaluation / sanity-check tool**: it compares a **ground-truth object pose** (from BOP/LMO JSON: `cam_R_m2c`, `cam_t_m2c`) against **estimated pose** (a 4×4 matrix you typed in), and reports:
 
 * **rotation error (degrees)**
 * **translation error (Euclidean distance, same units as `t` — here mm)**
 
-That’s why at the end you see:
+That’s why at the end, you see:
 
 * a printed GT 4×4 matrix
 * `4.6193...` (rotation error printed once)
@@ -37,13 +37,9 @@ You have two very similar functions:
 
 Takes a flattened 3×3 `cam_R_m2c` and a 3-vector `cam_t_m2c` and builds:
 
-[
-T =
-\begin{bmatrix}
-R & t\
-0 & 1
-\end{bmatrix}
-]
+$$
+T =\begin{bmatrix}R & t\0 & 1\end{bmatrix}
+$$
 
 (But note: you don’t actually use this function later.)
 
@@ -76,9 +72,7 @@ Computes the **geodesic angle** between two rotation matrices:
 * Converts to angle using:
 
 $$
-[
 \theta = \cos^{-1}\left(\frac{\mathrm{trace}(R_\Delta) - 1}{2}\right)
-]
 $$
 
 Returns **degrees**.
@@ -168,7 +162,7 @@ Angular distance (deg): 4.64, Euclidean distance (mm): 14.03
 
 ## A couple of “gotchas” in this script
 
-1. **Units:** Your `cam_t_m2c` values look like **mm** (typical BOP). Your `annotated_pose` translations are also mm, so distance comes out in **mm**. If you ever convert one to meters, you must convert the other too.
+1. **Units:** Your `cam_t_m2c` values look like **mm** (typical BOP). Your `estimated_pose` translations are also mm, so distance comes out in **mm**. If you ever convert one to meters, you must convert the other too.
 
 2. **Redundant / confusing naming:** you import `Rotation as R`, but also use `R` as a matrix variable name in other functions. It works because scopes differ, but it’s easy to mess up.
 
