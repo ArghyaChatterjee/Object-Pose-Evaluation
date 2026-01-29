@@ -20,7 +20,149 @@ $$
 
 Projection is **last**, and only touches **pixels**.
 
+## 1️⃣ Object pose — ❌ NOT using the projection matrix
+
+### Source of truth
+
+The object pose comes from:
+
+```python
+M_world_obj = utils.get_actor_user_matrix(mesh_model)
+```
+
+That matrix is:
+
+* purely **actor.user_matrix**
+* manipulated by UI controls, PnP, reset, undo, etc.
+* **already in world coordinates**
+
+👉 **No camera projection matrix is used here.**
+👉 **No view matrix is applied here.**
+
+This pose is *independent of the camera*.
+
+So when you export:
+
+```json
+"transform_matrix": [[R, t], [0,0,0,1]]
+```
+
+that matrix is exactly what the user placed in the scene.
+
+✔️ Safe
+✔️ Metric (mm → m conversion aside)
+✔️ View-independent
+
 ---
+
+## 2️⃣ Camera projection matrix — ✅ exported, but NOT applied to poses
+
+The projection matrix is **computed and saved**, but **never used to modify object pose**.
+
+It is used only for:
+
+* downstream reprojection
+* rendering consistency
+* dataset consumers (e.g. BOP, NeRF, OpenGL-style pipelines)
+
+Conceptually:
+
+```text
+object pose:   World → Object
+view matrix:   World → Camera
+projection:    Camera → Image
+```
+
+You are exporting **all three**, but only the **pose** is used to compute object transforms.
+
+---
+
+## 3️⃣ Where the projection matrix comes from
+
+Inside `utils.build_label_dict_for_image`, the projection matrix is derived from:
+
+* `vtk_camera`
+* `fx, fy, cx, cy`
+* image width / height
+* VTK’s OpenGL-style clip-space
+
+This is roughly:
+
+$$
+P = K \cdot [I|0]
+$$
+
+converted into a **4×4 OpenGL projection matrix**.
+
+That’s why you see values like:
+
+```json
+"camera_projection_matrix": [
+  [ 0.765, 0, -0.016, 0 ],
+  [ 0, 1.224, -0.040, 0 ],
+  [ 0, 0, -2066, -774241 ],
+  [ 0, 0, -1, 0 ]
+]
+```
+
+That matrix is **not used to compute**:
+
+* object translation
+* object rotation
+* object scale
+
+It’s exported **for completeness**.
+
+---
+
+## 4️⃣ View matrix — also exported, not applied
+
+Same story for:
+
+```json
+"camera_view_matrix": [
+  [ 1,  0,  0, 0 ],
+  [ 0, -1,  0, 0 ],
+  [ 0,  0, -1, 0 ],
+  [ 0,  0,  0, 1 ]
+]
+```
+
+This comes from:
+
+* camera position
+* focal point
+* view-up vector
+* VTK’s coordinate conventions
+
+Again:
+
+* ❌ not applied to object pose
+* ❌ not baked into transform_matrix
+* ✅ exported so downstream code can reproject
+
+---
+
+## 5️⃣ The important guarantee 
+> *“Is the view / projection matrix already applied internally when exporting object pose?”*
+
+### ✅ Answer: **NO**
+
+Your exported `transform_matrix` is:
+
+* **world → object**
+* **camera-agnostic**
+* **not projected**
+* **not view-transformed**
+
+---
+
+## Conclusion
+
+* **Object pose export:** ❌ does NOT use projection or view matrices
+* **Camera matrices export:** ✅ computed & saved, but **not applied**
+* **Rendering only:** projection/view affect visualization, not pose data
+
 
 ## 1️⃣ Pose-estimation datasets (BOP, LINEMOD, YCB-V)
 
