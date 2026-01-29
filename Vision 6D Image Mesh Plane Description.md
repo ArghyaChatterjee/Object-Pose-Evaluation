@@ -1,5 +1,10 @@
 # Vision6D Image Mesh Plane Description
 
+<div align="center">
+  <img src="media/vision6d.png" width="400">
+  <img src="media/vision6d.webp" width="300">
+</div>
+
 This is **faking a pinhole camera in 3D space** so that **moving a mesh in 3D produces the same pixel motion as a real camera**, without doing real projection math.
 
 ---
