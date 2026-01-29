@@ -1,5 +1,6 @@
 # Object Transform from World to Camera
-## Big picture
+
+# Big picture
 
 A **projection matrix** is used **only when you want to go from 3D → 2D pixels**.
 
@@ -164,6 +165,7 @@ Your exported `transform_matrix` is:
 * **Rendering only:** projection/view affect visualization, not pose data
 
 
+# Applications
 ## 1️⃣ Pose-estimation datasets (BOP, LINEMOD, YCB-V)
 
 ### Used for:
