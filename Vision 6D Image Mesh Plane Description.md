@@ -8,9 +8,9 @@ This is **faking a pinhole camera in 3D space** so that **moving a mesh in 3D pr
 
 In a real camera:
 
-[
+$$
 y_{\text{pixel}} = f_y \cdot \frac{Y}{Z}
-]
+$$
 
 So:
 
