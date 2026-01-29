@@ -14,8 +14,9 @@ It *is* needed when:
 ## Canonical pipeline
 
 $$
-[\mathbf{p}_{img}=\underbrace{P}*{\text{projection}}*\underbrace{V}*{\text{view}}*\underbrace{T_{world \to obj}}*{\text{pose}}*\mathbf{p}*{obj}]
+\mathbf{p}_{\text{img}} =\underbrace{P}_{\text{projection}}\* \underbrace{V}_{\text{view}}\ * \underbrace{T_{\text{world}\rightarrow\text{obj}}}_{\text{pose}}\ * \mathbf{p}_{\text{obj}}
 $$
+
 
 Projection is **last**, and only touches **pixels**.
 
@@ -111,14 +112,15 @@ Common in:
 * Tracking
 
 Loss:
+
 $$
-[\sum_i |\pi(P V T X_i) - x_i^{gt}|]
+\sum_i\left\lVert\pi\\left(PVTX_i\right)-x_i^{\text{gt}}\right\rVert
 $$
 
 Where:
 
-* ( \pi ) = perspective divide
-* ( P ) = projection matrix
+* $\pi$ = perspective divide
+* $P$ = projection matrix
 
 ✔️ **Training-time only**
 ✔️ Never stored in final pose
