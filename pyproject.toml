@@ -1,0 +1,23 @@
+[project]
+name = "object-pose-evaluation"
+authors = [
+   {"name" = "Arghya Chatterjee"},  
+]
+version = "0.1.0"
+description = "Object Pose Estimation Evaluation"
+readme = "README.md"
+requires-python = ">=3.8,<3.13"
+dependencies = [
+    "bop-toolkit-lib",
+    "hand-tracking-toolkit",
+    "torch>=2.5.1",
+]
+
+[tool.uv.workspace]
+members = [
+    "bop_toolkit",
+]
+
+[tool.uv.sources]
+bop-toolkit-lib = { workspace = true, editable = true }
+hand-tracking-toolkit = { git = "https://github.com/facebookresearch/hand_tracking_toolkit" }

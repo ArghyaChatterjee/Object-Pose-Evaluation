@@ -1,6 +1,74 @@
 # Object Pose Evaluation
 A repository for evaluating object pose w.r.t ground truth.
 
+## Requirements
+
+This work was tested on Ubuntu 22.04 and Python versions 3.8-3.12.
+
+## Clone the repo
+```
+git clone https://github.com/ArghyaChatterjee/Object-Pose-Evaluation.git
+cd Object-Pose-Evaluation
+```
+
+## Installation
+
+### Using [uv](https://docs.astral.sh/uv/getting-started/installation/)
+
+```bash
+uv python install 3.12
+uv sync --python 3.12
+uv python pin 3.12
+uv sync
+uv add --editable ./bop_toolkit
+source .venv/bin/activate
+uv add torch
+uv add "hand_tracking_toolkit @ git+https://github.com/facebookresearch/hand_tracking_toolkit"
+```
+This commands sets up a local venv, installs necessary dependencies and bop_toolkit_lib. You may provide additional flags such as:
+
+- `--python 3.10`: specify the venv python version
+- `--extra eval_coco`: install dependencies for coco evaluation
+- `--extra eval_gpu`: install dependencies for gpu evaluation
+- `--extra eval_hot3d`: install dependencies for hot3d evaluation
+- `--extra scripts`: install dependencies for utility scripts (e.g. `annotation_tools.py`)
+
+### Using pip
+```bash
+pip install .  # bop_toolkit_lib with core dependencies only
+# with additional dependencies
+pip install .[eval_coco]  # install dependencies for coco evaluation
+pip install .[eval_gpu]  # install dependencies for gpu evaluation
+pip install .[eval_hot3d]  # install dependencies for hot3d evaluation
+uv pip install .[scripts]  # install dependencies for utility scripts (e.g. `annotation_tools.py`)
+```
+
+### Unittests
+```
+export BOP_PATH=$HOME/bop_datasets
+python -m unittest discover bop_toolkit/bop_toolkit_lib/tests
+```
+
+### Compute evaluation metrics
+
+Compute AUC of ADD:
+```
+python3 scripts/compute_auc_add.py
+```
+Compute AUC of ADDS:
+```
+python scripts/compute_auc_adds.py
+```
+Compute ADD>0.1D:
+```
+python scripts/compute_add_01d.py
+```
+Compute Pose Error in Degree / CM:
+```
+python scripts/compute_degree_cm.py
+```
+
+### Description
 This script is an **evaluation / sanity-check tool**: it compares a **ground-truth object pose** (from BOP/LMO JSON: `cam_R_m2c`, `cam_t_m2c`) against **estimated pose** (a 4×4 matrix you typed in), and reports:
 
 * **rotation error (degrees)**
