@@ -1,5 +1,5 @@
 # Object Pose Evaluation
-A repository for evaluating object pose w.r.t ground truth.
+A repository for evaluating object pose w.r.t ground truth pose. This repo uses the [bop toolkit](https://github.com/thodan/bop_toolkit) for pose accuracy evaluation. 
 
 ## Requirements
 
@@ -57,106 +57,89 @@ python3 scripts/compute_auc_add.py
 ```
 Compute AUC of ADDS:
 ```
-python scripts/compute_auc_adds.py
+python3 scripts/compute_auc_adds.py
 ```
 Compute ADD>0.1D:
 ```
-python scripts/compute_add_01d.py
+python3 scripts/compute_add_01d.py
 ```
 Compute Pose Error in Degree / CM:
 ```
-python scripts/compute_degree_cm.py
+python3 scripts/compute_degree_cm.py
 ```
 
-# Object Pose Estimation Evaluation Metrics
+# Description of Evaluation Metrics 
 
-This repository evaluates rigid object pose estimation results using several commonly reported metrics from the 6D object pose estimation literature, including ADD, ADD-S, ADD-0.1d, AUC, rotation/translation thresholds, and BOP challenge metrics.
+This repository evaluates rigid object pose estimation results using several commonly reported metrics from the 6D object pose estimation literature.
+
+The following metrics are implemented:
+
+1. AUC of ADD
+2. AUC of ADD-S
+3. ADD-0.1d Recall
+4. 5° / 5 cm Accuracy
+5. 10° / 10 cm Accuracy
+
+The evaluation requires:
+
+* Ground-truth object poses
+* Estimated object poses
+* Object mesh
+
+All pose errors are computed using the BOP Toolkit implementation.
 
 ---
 
-# Pose Representation
+## Pose Representation
 
-A rigid pose is represented as:
+A rigid object pose is represented by:
 
-[
-\mathbf{T} =
-\begin{bmatrix}
-\mathbf{R} & \mathbf{t} \
-0 & 1
-\end{bmatrix}
-]
+`T = [R | t]`
 
 where:
 
-* (\mathbf{R}\in SO(3)) is the rotation matrix.
-* (\mathbf{t}\in \mathbb{R}^{3}) is the translation vector.
+* `R` is a 3×3 rotation matrix.
+* `t` is a 3×1 translation vector.
 
-For a model point (\mathbf{x}), the transformed point is:
+For a model point `x`, the transformed point is:
 
-[
-\mathbf{x}' = \mathbf{R}\mathbf{x} + \mathbf{t}
-]
+`x' = R x + t`
 
 Given:
 
-* Ground-truth pose ((\mathbf{R}*{gt}, \mathbf{t}*{gt}))
-* Estimated pose ((\mathbf{R}*{est}, \mathbf{t}*{est}))
+* Ground-truth pose `(R_gt, t_gt)`
+* Estimated pose `(R_est, t_est)`
 
 the following metrics are computed.
 
 ---
 
-# Average Distance of Model Points (ADD)
+## ADD (Average Distance of Model Points)
 
-ADD measures the average distance between model points transformed by the estimated pose and the ground-truth pose.
+ADD measures the average distance between mesh vertices transformed by the estimated pose and the ground-truth pose.
 
-[
-\text{ADD}
-==========
-
-\frac{1}{|\mathcal{M}|}
-\sum_{\mathbf{x}\in\mathcal{M}}
-\left|
-(\mathbf{R}*{est}\mathbf{x}+\mathbf{t}*{est})
----------------------------------------------
-
-(\mathbf{R}*{gt}\mathbf{x}+\mathbf{t}*{gt})
-\right|_2
-]
+`ADD = (1 / |M|) * Σ || (R_est x + t_est) - (R_gt x + t_gt) ||`
 
 where:
 
-* (\mathcal{M}) is the set of mesh vertices.
-* (|\mathcal{M}|) is the number of vertices.
+* `M` is the set of mesh vertices.
+* `|M|` is the number of mesh vertices.
 
 ADD is typically used for asymmetric objects.
 
-Smaller values indicate better pose estimates.
+Lower values indicate better pose estimates.
 
-Units are the same as the mesh units, typically meters.
+The error is reported in the same units as the mesh, typically meters.
 
 ---
 
-# Average Distance of Model Points for Symmetric Objects (ADD-S)
+## ADD-S (Average Distance of Model Points for Symmetric Objects)
 
-For symmetric objects, multiple rotations may produce identical appearances.
+For symmetric objects, multiple poses may produce identical visual appearances. ADD-S replaces direct point correspondences with nearest-neighbor matching.
 
-ADD-S replaces the direct point correspondence with nearest-neighbor matching:
+`ADD-S = (1 / |M|) * Σ min || (R_est x1 + t_est) - (R_gt x2 + t_gt) ||`
 
-[
-\text{ADD-S}
-============
-
-\frac{1}{|\mathcal{M}|}
-\sum_{\mathbf{x}*1\in\mathcal{M}}
-\min*{\mathbf{x}*2\in\mathcal{M}}
-\left|
-(\mathbf{R}*{est}\mathbf{x}*1+\mathbf{t}*{est})
------------------------------------------------
-
-(\mathbf{R}_{gt}\mathbf{x}*2+\mathbf{t}*{gt})
-\right|_2
-]
+where the minimum is taken over all model points in the ground-truth pose.
 
 ADD-S is commonly used for:
 
@@ -166,348 +149,188 @@ ADD-S is commonly used for:
 * cylinders
 * rotationally symmetric objects
 
+Lower values indicate better pose estimates.
+
 ---
 
-# Area Under the Curve (AUC)
+## AUC of ADD / ADD-S
 
-Instead of evaluating a single threshold, many papers report the Area Under the ADD or ADD-S Recall Curve.
+Many pose estimation papers report the Area Under the Recall Curve (AUC) rather than a single threshold.
 
-For a threshold (t):
+For a threshold `t`:
 
-[
-\text{Recall}(t)
-================
+`Recall(t) = (# poses with error <= t) / N`
 
-\frac{
-#{\text{frames with error} \le t}
-}{
-N
-}
-]
+where `N` is the total number of evaluated poses.
 
-The AUC is:
+The AUC is computed as:
 
-[
-\text{AUC}
-==========
+`AUC = (Integral Recall(t) dt from 0 to t_max) / t_max`
 
-\frac{
-\int_{0}^{t_{max}}
-\text{Recall}(t),dt
-}{
-t_{max}
-}
-\times 100
-]
+and reported as a percentage.
+
+For the YCB-Video evaluation protocol:
+
+`t_max = 0.1 m`
+
+Higher values indicate better performance.
+
+A perfect pose estimator would achieve:
+
+`AUC = 100%`
+
+---
+
+## ADD-0.1d Recall
+
+ADD-0.1d evaluates whether the ADD error is less than 10% of the object diameter.
+
+A pose is considered correct if:
+
+`ADD < 0.1 * d`
 
 where:
 
-[
-t_{max}=0.1\ \text{m}
-]
+`d = object diameter`
 
-for the standard YCB-Video PoseCNN evaluation protocol.
+The recall is then:
 
-Reported metrics:
+`Recall = (# correct poses) / N`
 
-* AUC ADD
-* AUC ADD-S
+and is reported as a percentage.
 
-Higher values are better.
+This metric is commonly reported by:
 
-Perfect performance corresponds to:
-
-[
-\text{AUC}=100
-]
-
----
-
-# ADD-0.1d
-
-ADD-0.1d evaluates whether the ADD error is below 10% of the object diameter.
-
-Object diameter:
-
-[
-d
-=
-
-\max_{\mathbf{x}_i,\mathbf{x}_j\in\mathcal{M}}
-|\mathbf{x}_i-\mathbf{x}_j|_2
-]
-
-Pose estimate is considered correct if:
-
-[
-\text{ADD}
-<
-0.1d
-]
-
-Recall is then:
-
-[
-\text{Recall}
-=============
-
-\frac{
-#{\text{correct poses}}
-}{
-N
-}
-\times 100
-]
-
-This metric is widely reported in:
-
+* PoseCNN
+* DenseFusion
 * FoundationPose
 * MegaPose
 * SAM-6D
 * OnePose++
-* CNOS
+
+Higher values indicate better performance.
 
 ---
 
-# Rotation Error
+## Rotation Error
 
-Rotation error is the geodesic distance between two rotations.
+Rotation error is computed as the geodesic distance between the estimated and ground-truth rotations.
 
-Let:
+First:
 
-[
-\mathbf{R}_{err}
-================
-
-\mathbf{R}*{est}
-\mathbf{R}*{gt}^{T}
-]
+`R_err = R_est * R_gt^T`
 
 Then:
 
-[
-e_R
-===
+`rotation_error = acos((trace(R_err) - 1) / 2)`
 
-\cos^{-1}
-\left(
-\frac{
-\mathrm{trace}(\mathbf{R}_{err})-1
-}{2}
-\right)
-]
+The result is reported in degrees.
 
-reported in degrees.
-
-[
-e_R [^\circ]
-============
-
-\frac{180}{\pi}
-e_R
-]
+Lower values indicate better pose estimates.
 
 ---
 
-# Translation Error
+## Translation Error
 
-Translation error is the Euclidean distance between translations:
+Translation error is the Euclidean distance between estimated and ground-truth translations.
 
-[
-e_t
-===
+`translation_error = || t_est - t_gt ||`
 
-|
-\mathbf{t}_{est}
-----------------
-
-\mathbf{t}_{gt}
-|_2
-]
-
-Usually reported in:
+The result may be reported in:
 
 * meters
 * centimeters
 
-depending on the benchmark.
+depending on the benchmark protocol.
+
+Lower values indicate better pose estimates.
 
 ---
 
-# 5° / 5 cm Metric
+## 5° / 5 cm Accuracy
 
 A pose estimate is considered correct if:
 
-[
-e_R < 5^\circ
-]
+`rotation_error < 5 degrees`
 
 and
 
-[
-e_t < 5\ \text{cm}
-]
+`translation_error < 5 cm`
 
-Accuracy is:
+Accuracy is computed as:
 
-[
-\frac{
-#{\text{correct poses}}
-}{
-N
-}
-\times100
-]
+`Accuracy = (# correct poses) / N`
+
+and reported as a percentage.
 
 ---
 
-# 10° / 10 cm Metric
+## 10° / 10 cm Accuracy
 
 A pose estimate is considered correct if:
 
-[
-e_R < 10^\circ
-]
+`rotation_error < 10 degrees`
 
 and
 
-[
-e_t < 10\ \text{cm}
-]
+`translation_error < 10 cm`
 
-Accuracy is:
+Accuracy is computed as:
 
-[
-\frac{
-#{\text{correct poses}}
-}{
-N
-}
-\times100
-]
+`Accuracy = (# correct poses) / N`
+
+and reported as a percentage.
 
 ---
 
-# BOP Challenge Metrics
+# Additional BOP Metrics
 
-Recent BOP benchmarks primarily use:
-
-* VSD
-* MSSD
-* MSPD
-
-instead of ADD.
-
-These metrics are symmetry-aware and designed to evaluate real-world pose ambiguity.
+The BOP benchmark primarily evaluates pose estimation using three additional metrics.
 
 ---
 
 ## VSD (Visible Surface Discrepancy)
 
-VSD compares only the visible surfaces of the rendered object.
+VSD compares only the visible surfaces of the object rendered from the estimated and ground-truth poses.
 
-For a visibility mask (V):
+The metric evaluates depth consistency between visible object pixels while accounting for occlusions and pose ambiguities.
 
-[
-\text{VSD}
-==========
+VSD is particularly useful for symmetric objects and heavily occluded scenes.
 
-\frac{1}{|V|}
-\sum_{p\in V}
-c(p)
-]
-
-where
-
-[
-c(p)
-====
-
-\begin{cases}
-0 & \text{if } |D_{est}(p)-D_{gt}(p)| < \tau \
-1 & \text{otherwise}
-\end{cases}
-]
-
-and:
-
-* (D_{est}) is the rendered depth from the estimated pose.
-* (D_{gt}) is the rendered depth from the ground-truth pose.
-* (\tau) is a depth tolerance.
-
-VSD ignores ambiguities caused by object symmetries and occlusions.
+Lower values indicate better pose estimates.
 
 ---
 
 ## MSSD (Maximum Symmetry-Aware Surface Distance)
 
-MSSD measures the largest surface point deviation after considering all valid symmetry transformations.
+MSSD measures the maximum distance between transformed model points while accounting for valid object symmetries.
 
-[
-\text{MSSD}
-===========
-
-\min_{S\in\mathcal{S}}
-\max_{\mathbf{x}\in\mathcal{M}}
-|
-\mathbf{T}_{est}\mathbf{x}
---------------------------
-
-\mathbf{T}_{gt}S\mathbf{x}
-|
-]
+`MSSD = min_S max || T_est x - T_gt S x ||`
 
 where:
 
-* (\mathcal{S}) is the symmetry group.
+* `S` is a valid symmetry transformation.
+* `T_est` is the estimated pose.
+* `T_gt` is the ground-truth pose.
 
-Lower values are better.
+Lower values indicate better pose estimates.
 
 ---
 
 ## MSPD (Maximum Symmetry-Aware Projection Distance)
 
-MSPD measures the largest 2D reprojection error while accounting for object symmetries.
+MSPD measures the maximum 2D reprojection error while accounting for object symmetries.
 
-[
-\text{MSPD}
-===========
-
-\min_{S\in\mathcal{S}}
-\max_{\mathbf{x}\in\mathcal{M}}
-|
-\pi(\mathbf{T}_{est}\mathbf{x})
--------------------------------
-
-\pi(\mathbf{T}_{gt}S\mathbf{x})
-|
-]
+`MSPD = min_S max || proj(T_est x) - proj(T_gt S x) ||`
 
 where:
 
-[
-\pi(\cdot)
-]
+* `proj(.)` denotes projection into the image plane.
+* `S` is a valid symmetry transformation.
 
-denotes projection into the image plane.
+MSPD is reported in pixels.
 
-MSPD is measured in pixels.
-
-Lower values indicate better alignment.
-
----
-
-# Metrics Implemented in This Repository
-
-The provided scripts compute:
-
-1. AUC ADD
-2. AUC ADD-S
-3. ADD-0.1d Recall
-4. 5° / 5 cm Accuracy
-5. 10° / 10 cm Accuracy
-
-using ground-truth and estimated poses stored as JSON files and object meshes stored as OBJ files.
+Lower values indicate better pose estimates.
 
 
 
