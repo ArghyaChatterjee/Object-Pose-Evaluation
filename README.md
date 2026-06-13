@@ -68,186 +68,447 @@ Compute Pose Error in Degree / CM:
 python scripts/compute_degree_cm.py
 ```
 
-### Description
-This script is an **evaluation / sanity-check tool**: it compares a **ground-truth object pose** (from BOP/LMO JSON: `cam_R_m2c`, `cam_t_m2c`) against **estimated pose** (a 4×4 matrix you typed in), and reports:
+# Object Pose Estimation Evaluation Metrics
 
-* **rotation error (degrees)**
-* **translation error (Euclidean distance, same units as `t` — here mm)**
-
-That’s why at the end, you see:
-
-* a printed GT 4×4 matrix
-* `4.6193...` (rotation error printed once)
-* then the final formatted line with rotation + translation error
+This repository evaluates rigid object pose estimation results using several commonly reported metrics from the 6D object pose estimation literature, including ADD, ADD-S, ADD-0.1d, AUC, rotation/translation thresholds, and BOP challenge metrics.
 
 ---
 
-## What each part is doing
+# Pose Representation
 
-### 1) Printing settings
+A rigid pose is represented as:
 
-```py
-np.set_printoptions(suppress=True, precision=4)
-```
-
-Just makes numpy print matrices nicely:
-
-* no scientific notation
-* 4 decimals
-
----
-
-### 2) Pose parsing: JSON → 4×4 transform
-
-You have two very similar functions:
-
-#### `convert_to_4x4(cam_R_m2c, cam_t_m2c, scale=1)`
-
-Takes a flattened 3×3 `cam_R_m2c` and a 3-vector `cam_t_m2c` and builds:
-
-$$
-T =\begin{bmatrix}R & t\0 & 1\end{bmatrix}
-$$
-
-(But note: you don’t actually use this function later.)
-
-#### `compute_matrix(data)`
-
-Reads `cam_R_m2c`, `cam_t_m2c`, `obj_id` from a dict and returns `(T, obj_id)`.
-
----
-
-### 3) `process_scene_gt(json_data)`
-
-```py
-data = json.loads(json_data)
-T, obj_id = compute_matrix(data)
-print(T)
-return T
-```
-
-So this takes a JSON string for one object pose (GT) and returns the GT 4×4 pose matrix.
-
----
-
-## 4) Pose error computation
-
-### `rotation_angle_deg(R1, R2)`
-
-Computes the **geodesic angle** between two rotation matrices:
-
-* Computes relative rotation: `R_delta = R2 @ R1.T`
-* Converts to angle using:
-
-$$
-\theta = \cos^{-1}\left(\frac{\mathrm{trace}(R_\Delta) - 1}{2}\right)
-$$
-
-Returns **degrees**.
-
-### `pose_errors(T1, T2)`
-
-This compares two 4×4 poses:
-
-* `T1` = your `annotated_pose`
-* `T2` = GT pose from JSON
-
-It computes rotation error **two ways** (redundantly):
-
-1. using `rotation_angle_deg(...)` and prints it
-
-```py
-ang_deg1 = rotation_angle_deg(R1, R2)
-print(ang_deg1)
-```
-
-2. using SciPy rotations:
-
-```py
-R_delta = R2 * R1.inv()
-ang_deg = np.degrees(R_delta.magnitude())
-```
-
-Then translation error:
-
-```py
-eucli_dist = ||t2 - t1||
-```
-
-Returns: `(rotation_error_deg, translation_error_distance)`
-
-So your final numbers are:
-
-* **Angular distance ~ 4.64°**
-* **Translation error ~ 14.03 mm**
-
----
-
-## 5) The `image_000008_obj_0000XX()` functions
-
-Each of these is just a **hardcoded test case**:
-
-* `json_data` = GT pose for a specific object in image 000008
-* `annotated_pose` = your estimated pose matrix
-* compare them and print errors
-
-At the bottom:
-
-```py
-image_000008_obj_000010()
-```
-
-So it runs only object **10**.
-
----
-
-## Why your output looks like that
-
-You printed the GT matrix:
-
-```text
-Object ID 10:
-[[0.0194, 0.9854, 0.1690, 189.8814],
- ...
+[
+\mathbf{T} =
+\begin{bmatrix}
+\mathbf{R} & \mathbf{t} \
+0 & 1
+\end{bmatrix}
 ]
-```
 
-Then `pose_errors` prints the first rotation error method:
+where:
 
-```text
-4.619308...
-```
+* (\mathbf{R}\in SO(3)) is the rotation matrix.
+* (\mathbf{t}\in \mathbb{R}^{3}) is the translation vector.
 
-Then you print the final summary using the SciPy rotation angle:
+For a model point (\mathbf{x}), the transformed point is:
 
-```text
-Angular distance (deg): 4.64, Euclidean distance (mm): 14.03
-```
+[
+\mathbf{x}' = \mathbf{R}\mathbf{x} + \mathbf{t}
+]
 
-(4.6193 vs 4.64 differs only due to rounding + two different computations.)
+Given:
 
----
+* Ground-truth pose ((\mathbf{R}*{gt}, \mathbf{t}*{gt}))
+* Estimated pose ((\mathbf{R}*{est}, \mathbf{t}*{est}))
 
-## A couple of “gotchas” in this script
-
-1. **Units:** Your `cam_t_m2c` values look like **mm** (typical BOP). Your `estimated_pose` translations are also mm, so distance comes out in **mm**. If you ever convert one to meters, you must convert the other too.
-
-2. **Redundant / confusing naming:** you import `Rotation as R`, but also use `R` as a matrix variable name in other functions. It works because scopes differ, but it’s easy to mess up.
-
-3. **Bug / incomplete case:**
-   `image_000008_obj_000006()` calls:
-
-```py
-gt_pose = process_scene_gt()
-```
-
-but `process_scene_gt(json_data)` requires an argument — that function would crash if you uncomment it.
+the following metrics are computed.
 
 ---
 
-## Summary
+# Average Distance of Model Points (ADD)
 
-It’s a **pose error checker**: for a given object instance, it converts GT pose JSON into a 4×4 transform and compares it against your annotated 4×4 pose, outputting **rotation error (deg)** and **translation error (mm)**.
+ADD measures the average distance between model points transformed by the estimated pose and the ground-truth pose.
+
+[
+\text{ADD}
+==========
+
+\frac{1}{|\mathcal{M}|}
+\sum_{\mathbf{x}\in\mathcal{M}}
+\left|
+(\mathbf{R}*{est}\mathbf{x}+\mathbf{t}*{est})
+---------------------------------------------
+
+(\mathbf{R}*{gt}\mathbf{x}+\mathbf{t}*{gt})
+\right|_2
+]
+
+where:
+
+* (\mathcal{M}) is the set of mesh vertices.
+* (|\mathcal{M}|) is the number of vertices.
+
+ADD is typically used for asymmetric objects.
+
+Smaller values indicate better pose estimates.
+
+Units are the same as the mesh units, typically meters.
+
+---
+
+# Average Distance of Model Points for Symmetric Objects (ADD-S)
+
+For symmetric objects, multiple rotations may produce identical appearances.
+
+ADD-S replaces the direct point correspondence with nearest-neighbor matching:
+
+[
+\text{ADD-S}
+============
+
+\frac{1}{|\mathcal{M}|}
+\sum_{\mathbf{x}*1\in\mathcal{M}}
+\min*{\mathbf{x}*2\in\mathcal{M}}
+\left|
+(\mathbf{R}*{est}\mathbf{x}*1+\mathbf{t}*{est})
+-----------------------------------------------
+
+(\mathbf{R}_{gt}\mathbf{x}*2+\mathbf{t}*{gt})
+\right|_2
+]
+
+ADD-S is commonly used for:
+
+* bottles
+* bowls
+* cans
+* cylinders
+* rotationally symmetric objects
+
+---
+
+# Area Under the Curve (AUC)
+
+Instead of evaluating a single threshold, many papers report the Area Under the ADD or ADD-S Recall Curve.
+
+For a threshold (t):
+
+[
+\text{Recall}(t)
+================
+
+\frac{
+#{\text{frames with error} \le t}
+}{
+N
+}
+]
+
+The AUC is:
+
+[
+\text{AUC}
+==========
+
+\frac{
+\int_{0}^{t_{max}}
+\text{Recall}(t),dt
+}{
+t_{max}
+}
+\times 100
+]
+
+where:
+
+[
+t_{max}=0.1\ \text{m}
+]
+
+for the standard YCB-Video PoseCNN evaluation protocol.
+
+Reported metrics:
+
+* AUC ADD
+* AUC ADD-S
+
+Higher values are better.
+
+Perfect performance corresponds to:
+
+[
+\text{AUC}=100
+]
+
+---
+
+# ADD-0.1d
+
+ADD-0.1d evaluates whether the ADD error is below 10% of the object diameter.
+
+Object diameter:
+
+[
+d
+=
+
+\max_{\mathbf{x}_i,\mathbf{x}_j\in\mathcal{M}}
+|\mathbf{x}_i-\mathbf{x}_j|_2
+]
+
+Pose estimate is considered correct if:
+
+[
+\text{ADD}
+<
+0.1d
+]
+
+Recall is then:
+
+[
+\text{Recall}
+=============
+
+\frac{
+#{\text{correct poses}}
+}{
+N
+}
+\times 100
+]
+
+This metric is widely reported in:
+
+* FoundationPose
+* MegaPose
+* SAM-6D
+* OnePose++
+* CNOS
+
+---
+
+# Rotation Error
+
+Rotation error is the geodesic distance between two rotations.
+
+Let:
+
+[
+\mathbf{R}_{err}
+================
+
+\mathbf{R}*{est}
+\mathbf{R}*{gt}^{T}
+]
+
+Then:
+
+[
+e_R
+===
+
+\cos^{-1}
+\left(
+\frac{
+\mathrm{trace}(\mathbf{R}_{err})-1
+}{2}
+\right)
+]
+
+reported in degrees.
+
+[
+e_R [^\circ]
+============
+
+\frac{180}{\pi}
+e_R
+]
+
+---
+
+# Translation Error
+
+Translation error is the Euclidean distance between translations:
+
+[
+e_t
+===
+
+|
+\mathbf{t}_{est}
+----------------
+
+\mathbf{t}_{gt}
+|_2
+]
+
+Usually reported in:
+
+* meters
+* centimeters
+
+depending on the benchmark.
+
+---
+
+# 5° / 5 cm Metric
+
+A pose estimate is considered correct if:
+
+[
+e_R < 5^\circ
+]
+
+and
+
+[
+e_t < 5\ \text{cm}
+]
+
+Accuracy is:
+
+[
+\frac{
+#{\text{correct poses}}
+}{
+N
+}
+\times100
+]
+
+---
+
+# 10° / 10 cm Metric
+
+A pose estimate is considered correct if:
+
+[
+e_R < 10^\circ
+]
+
+and
+
+[
+e_t < 10\ \text{cm}
+]
+
+Accuracy is:
+
+[
+\frac{
+#{\text{correct poses}}
+}{
+N
+}
+\times100
+]
+
+---
+
+# BOP Challenge Metrics
+
+Recent BOP benchmarks primarily use:
+
+* VSD
+* MSSD
+* MSPD
+
+instead of ADD.
+
+These metrics are symmetry-aware and designed to evaluate real-world pose ambiguity.
+
+---
+
+## VSD (Visible Surface Discrepancy)
+
+VSD compares only the visible surfaces of the rendered object.
+
+For a visibility mask (V):
+
+[
+\text{VSD}
+==========
+
+\frac{1}{|V|}
+\sum_{p\in V}
+c(p)
+]
+
+where
+
+[
+c(p)
+====
+
+\begin{cases}
+0 & \text{if } |D_{est}(p)-D_{gt}(p)| < \tau \
+1 & \text{otherwise}
+\end{cases}
+]
+
+and:
+
+* (D_{est}) is the rendered depth from the estimated pose.
+* (D_{gt}) is the rendered depth from the ground-truth pose.
+* (\tau) is a depth tolerance.
+
+VSD ignores ambiguities caused by object symmetries and occlusions.
+
+---
+
+## MSSD (Maximum Symmetry-Aware Surface Distance)
+
+MSSD measures the largest surface point deviation after considering all valid symmetry transformations.
+
+[
+\text{MSSD}
+===========
+
+\min_{S\in\mathcal{S}}
+\max_{\mathbf{x}\in\mathcal{M}}
+|
+\mathbf{T}_{est}\mathbf{x}
+--------------------------
+
+\mathbf{T}_{gt}S\mathbf{x}
+|
+]
+
+where:
+
+* (\mathcal{S}) is the symmetry group.
+
+Lower values are better.
+
+---
+
+## MSPD (Maximum Symmetry-Aware Projection Distance)
+
+MSPD measures the largest 2D reprojection error while accounting for object symmetries.
+
+[
+\text{MSPD}
+===========
+
+\min_{S\in\mathcal{S}}
+\max_{\mathbf{x}\in\mathcal{M}}
+|
+\pi(\mathbf{T}_{est}\mathbf{x})
+-------------------------------
+
+\pi(\mathbf{T}_{gt}S\mathbf{x})
+|
+]
+
+where:
+
+[
+\pi(\cdot)
+]
+
+denotes projection into the image plane.
+
+MSPD is measured in pixels.
+
+Lower values indicate better alignment.
+
+---
+
+# Metrics Implemented in This Repository
+
+The provided scripts compute:
+
+1. AUC ADD
+2. AUC ADD-S
+3. ADD-0.1d Recall
+4. 5° / 5 cm Accuracy
+5. 10° / 10 cm Accuracy
+
+using ground-truth and estimated poses stored as JSON files and object meshes stored as OBJ files.
+
 
 
 

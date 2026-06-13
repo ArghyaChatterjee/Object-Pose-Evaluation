@@ -4,8 +4,8 @@ from pathlib import Path
 import numpy as np
 from bop_toolkit_lib import pose_error
 
-GT_DIR = Path("/home/arghya/Object-Pose-Evaluation/data/ground_truth")
-EST_DIR = Path("/home/arghya/Object-Pose-Evaluation/data/estimated")
+GT_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/GroundTruthPose/door_lever_2/filtered/labels")
+EST_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/SupervisePose/door_lever_2/filtered/labels")
 
 
 def load_pose(path):

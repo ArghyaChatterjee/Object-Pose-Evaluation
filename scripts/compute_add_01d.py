@@ -4,9 +4,9 @@ from pathlib import Path
 import numpy as np
 from bop_toolkit_lib import pose_error
 
-GT_DIR = Path("/home/arghya/Object-Pose-Evaluation/data/ground_truth")
-EST_DIR = Path("/home/arghya/Object-Pose-Evaluation/data/estimated")
-MESH_PATH = Path("/home/arghya/Object-Pose-Evaluation/data/meshes/trash_can_2.obj")
+GT_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/GroundTruthPose/door_lever_2/filtered/labels")
+EST_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/SupervisePose/door_lever_2/filtered/labels")
+MESH_PATH = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/GroundTruthPose/door_lever_2/filtered/mesh/door_lever_2.obj")
 
 
 def load_obj_vertices(path):
