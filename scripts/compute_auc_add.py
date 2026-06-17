@@ -4,9 +4,9 @@ from pathlib import Path
 import numpy as np
 from bop_toolkit_lib import pose_error
 
-GT_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/GroundTruthPose/door_lever_2/filtered/labels")
-EST_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/SupervisePose/door_lever_2/filtered/labels")
-MESH_PATH = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/GroundTruthPose/door_lever_2/filtered/mesh/door_lever_2.obj")
+GT_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/GroundTruthPose/storage_container_2/filtered/labels")
+EST_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/SupervisePose/storage_container_2/filtered/labels")
+MESH_PATH = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/GroundTruthPose/storage_container_2/filtered/mesh/storage_container_2.obj")
 
 AUC_MAX_THRESHOLD_M = 0.1
 

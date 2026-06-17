@@ -55,13 +55,17 @@ Compute AUC of ADD:
 ```
 python3 scripts/compute_auc_add.py
 ```
-Compute AUC of ADDS:
+Compute AUC of ADD-S:
 ```
 python3 scripts/compute_auc_adds.py
 ```
-Compute ADD>0.1D:
+Compute Recall ADD (CM) < 0.1D:
 ```
 python3 scripts/compute_add_01d.py
+```
+Compute Recall ADD-S (CM) < 0.1D:
+```
+python3 scripts/compute_adds_01d.py
 ```
 Compute Pose Error in Degree / CM:
 ```
