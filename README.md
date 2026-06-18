@@ -183,6 +183,11 @@ A perfect pose estimator would achieve:
 
 `AUC = 100%`
 
+This metric is commonly reported by:
+
+* PoseCNN
+* FoundationPose
+
 ---
 
 ## ADD-0.1d Recall
@@ -205,18 +210,17 @@ and is reported as a percentage.
 
 This metric is commonly reported by:
 
-* PoseCNN
 * DenseFusion
 * FoundationPose
 * MegaPose
-* SAM-6D
 * OnePose++
+* FS6D
 
 Higher values indicate better performance.
 
 ---
 
-## Rotation Error
+## Rotation & Translation Error
 
 Rotation error is computed as the geodesic distance between the estimated and ground-truth rotations.
 
@@ -234,8 +238,6 @@ Lower values indicate better pose estimates.
 
 ---
 
-## Translation Error
-
 Translation error is the Euclidean distance between estimated and ground-truth translations.
 
 `translation_error = || t_est - t_gt ||`
@@ -251,90 +253,122 @@ Lower values indicate better pose estimates.
 
 ---
 
-## 5° / 5 cm Accuracy
+## Pose Average Precision (AP)
 
-A pose estimate is considered correct if:
+Several category-level 6D object pose estimation methods, such as NOCS, report **Average Precision (AP)** under joint rotation and translation thresholds (e.g., AP@5°/5 cm or AP@10°/10 cm).
 
-`rotation_error < 5 degrees`
+A predicted pose is considered correct if:
 
-and
+* the rotation error is less than the specified threshold (e.g., 5° or 10°),
+* the translation error is less than the specified threshold (e.g., 5 cm or 10 cm), and
+* the predicted object is correctly matched to a ground-truth instance.
 
-`translation_error < 5 cm`
+Unlike ADD-based metrics, AP also evaluates the object detector. Each predicted pose is associated with a confidence score, and predictions are sorted in descending confidence order to construct a precision-recall curve.
 
-Accuracy is computed as:
+The Average Precision is computed as the area under the precision-recall curve:
 
-`Accuracy = (# correct poses) / N`
+`AP = ∫ p(r) dr`
 
-and reported as a percentage.
+where:
 
----
+* `p(r)` is the precision at recall `r`,
+* true positives satisfy both the rotation and translation thresholds,
+* false positives include incorrect detections or poses exceeding the specified thresholds.
 
-## 10° / 10 cm Accuracy
+Typical metrics reported in the literature include:
 
-A pose estimate is considered correct if:
+* AP@5° / 2 cm
+* AP@5° / 5 cm
+* AP@10° / 2 cm
+* AP@10° / 5 cm
 
-`rotation_error < 10 degrees`
+These metrics are commonly used by category-level pose estimation methods that jointly evaluate object detection and pose estimation. This metric is commonly reported by:
 
-and
+* NOCS
+* OnePose ++
 
-`translation_error < 10 cm`
-
-Accuracy is computed as:
-
-`Accuracy = (# correct poses) / N`
-
-and reported as a percentage.
 
 ---
 
 # Additional BOP Metrics
 
-The BOP benchmark primarily evaluates pose estimation using three additional metrics.
+The BOP benchmark evaluates 6D object pose estimation using three primary pose-error functions:
+
+1. VSD: Visible Surface Discrepancy
+2. MSSD: Maximum Symmetry-Aware Surface Distance
+3. MSPD: Maximum Symmetry-Aware Projection Distance
+
+For each metric, a pose estimate is considered correct if its error is below a predefined threshold. The final score is reported as Average Recall (AR), not mAP.
+
+`AR = (AR_VSD + AR_MSSD + AR_MSPD) / 3`
 
 ---
 
-## VSD (Visible Surface Discrepancy)
+## VSD: Visible Surface Discrepancy
 
-VSD compares only the visible surfaces of the object rendered from the estimated and ground-truth poses.
+VSD compares the visible object surfaces rendered from the estimated and ground-truth poses.
 
-The metric evaluates depth consistency between visible object pixels while accounting for occlusions and pose ambiguities.
+It evaluates whether the rendered depth maps agree on the visible object region, while ignoring pose differences that do not change the visible surface.
 
-VSD is particularly useful for symmetric objects and heavily occluded scenes.
+VSD is useful for objects with symmetries or partial occlusions.
 
-Lower values indicate better pose estimates.
+Lower VSD is better.
+
+`AR_VSD` is computed by measuring recall over multiple VSD thresholds and multiple visibility tolerance values.
 
 ---
 
-## MSSD (Maximum Symmetry-Aware Surface Distance)
+## MSSD: Maximum Symmetry-Aware Surface Distance
 
-MSSD measures the maximum distance between transformed model points while accounting for valid object symmetries.
+MSSD measures the maximum 3D distance between model surface points transformed by the estimated and ground-truth poses, while accounting for valid object symmetries.
 
-`MSSD = min_S max || T_est x - T_gt S x ||`
+`MSSD = min_S max_x || T_est x - T_gt S x ||`
 
 where:
 
-* `S` is a valid symmetry transformation.
-* `T_est` is the estimated pose.
-* `T_gt` is the ground-truth pose.
+- `x` is a 3D model point.
+- `S` is a valid symmetry transformation.
+- `T_est` is the estimated pose.
+- `T_gt` is the ground-truth pose.
 
-Lower values indicate better pose estimates.
+Lower MSSD is better.
+
+`AR_MSSD` is computed by measuring recall over multiple MSSD thresholds.
 
 ---
 
-## MSPD (Maximum Symmetry-Aware Projection Distance)
+## MSPD: Maximum Symmetry-Aware Projection Distance
 
-MSPD measures the maximum 2D reprojection error while accounting for object symmetries.
+MSPD measures the maximum 2D projection error between model points transformed by the estimated and ground-truth poses, while accounting for valid object symmetries.
 
-`MSPD = min_S max || proj(T_est x) - proj(T_gt S x) ||`
+`MSPD = min_S max_x || proj(T_est x) - proj(T_gt S x) ||`
 
 where:
 
-* `proj(.)` denotes projection into the image plane.
-* `S` is a valid symmetry transformation.
+- `proj(.)` projects a 3D point into the image plane.
+- `S` is a valid symmetry transformation.
+- `T_est` is the estimated pose.
+- `T_gt` is the ground-truth pose.
 
 MSPD is reported in pixels.
 
-Lower values indicate better pose estimates.
+Lower MSPD is better.
+
+`AR_MSPD` is computed by measuring recall over multiple MSPD thresholds.
+
+---
+
+## Final BOP Average Recall
+
+The final BOP pose-estimation score is:
+
+`AR = (AR_VSD + AR_MSSD + AR_MSPD) / 3`
+
+This is an Average Recall score over pose-error thresholds. It is not mAP. This metric is commonly reported by:
+
+* SAM-6D
+* FoundationPose
+* BOP: Benchmark for Object Pose
 
 
 
