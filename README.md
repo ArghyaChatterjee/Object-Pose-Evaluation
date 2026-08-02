@@ -1,6 +1,10 @@
 # Object Pose Evaluation
 A repository for evaluating object pose w.r.t ground truth pose. This repo uses the [bop toolkit](https://github.com/thodan/bop_toolkit) for pose accuracy evaluation. 
 
+<div align="center">
+  <img src="media/rviz.png" width="400">
+</div>
+
 ## Requirements
 
 This work was tested on Ubuntu 22.04 and Python versions 3.8-3.12.
@@ -71,6 +75,41 @@ Compute Pose Error in Degree / CM:
 ```
 python3 scripts/compute_degree_cm.py
 ```
+
+### Visualize Pose Distribution
+
+<div align="center">
+  <img src="media/rviz.png" width="400">
+  <img src="media/zed_coordinate_system.png" width="300">
+</div>
+
+Instance Level:
+```
+python3 offline_instance_level_pose_distribution_visualizer.py
+```
+Category Level:
+```
+python3 offline_class_level_pose_distribution_visualizer.py
+```
+
+### Visualize Instance-Level Pose Error 
+
+Visualize qualitative evaluation: For ADD
+```
+python3 visualize_heatmap_pose_error_add_white_overlay.py
+```
+For ADD-S:
+```
+python3 visualize_heatmap_pose_error_adds_white_overlay.py
+```
+Per sequence ADD:
+```
+python3 visualize_overall_heatmap_average_pose_error_add_white_overlay.py
+```
+<div align="center">
+  <img src="media/rviz.png" width="400">
+  <img src="media/zed_coordinate_system.png" width="300">
+</div>
 
 # Description of Evaluation Metrics 
 
