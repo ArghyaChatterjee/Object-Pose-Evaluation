@@ -1,337 +1,252 @@
 # Object Transform from World to Camera
 
-# Big picture
+This document describes how object poses, view matrices, and projection matrices are handled during data export. It clarifies which matrices are used for object pose computation and which are provided only for rendering and reprojection purposes.
 
-A **projection matrix** is used **only when you want to go from 3D → 2D pixels**.
+## Coordinate Transformation Pipeline
 
-It *is* needed when:
+The standard graphics pipeline transforms object coordinates into image pixels as follows:
 
-* images are involved
-* supervision or evaluation is in pixel space
-* rendering must match a real camera
+$$ \mathbf{p}_{\text{img}} =\underbrace{P}_{\text{projection}}\* \underbrace{V}_{\text{view}}\ * \underbrace{T_{\text{world}\rightarrow\text{obj}}}_{\text{pose}}\ * \mathbf{p}_{\text{obj}} $$
+
+where:
+
+- **Object Transform (`T`)** — Object pose in the world
+- **View Matrix (`V`)** — World-to-camera transformation
+- **Projection Matrix (`P`)** — Camera-to-image projection
+
+The projection matrix is only required when converting 3D geometry into image pixels.
 
 ---
 
-## Canonical pipeline
+# Object Pose Export
 
-$$
-\mathbf{p}_{\text{img}} =\underbrace{P}_{\text{projection}}\* \underbrace{V}_{\text{view}}\ * \underbrace{T_{\text{world}\rightarrow\text{obj}}}_{\text{pose}}\ * \mathbf{p}_{\text{obj}}
-$$
-
-
-Projection is **last**, and only touches **pixels**.
-
-## 1️⃣ Object pose — ❌ NOT using the projection matrix
-
-### Source of truth
-
-The object pose comes from:
+The exported object pose is obtained directly from the actor transformation:
 
 ```python
 M_world_obj = utils.get_actor_user_matrix(mesh_model)
 ```
 
-That matrix is:
+This matrix represents the object's pose in world coordinates and is manipulated by:
 
-* purely **actor.user_matrix**
-* manipulated by UI controls, PnP, reset, undo, etc.
-* **already in world coordinates**
+- User interaction
+- Pose editing
+- PnP updates
+- Reset and undo operations
 
-👉 **No camera projection matrix is used here.**
-👉 **No view matrix is applied here.**
+The exported pose is:
 
-This pose is *independent of the camera*.
+- Independent of the camera
+- Independent of rendering
+- Independent of the projection matrix
 
-So when you export:
+Example export:
 
 ```json
-"transform_matrix": [[R, t], [0,0,0,1]]
+"transform_matrix": [
+    [...],
+    [...],
+    [...],
+    [0, 0, 0, 1]
+]
 ```
 
-that matrix is exactly what the user placed in the scene.
-
-✔️ Safe
-✔️ Metric (mm → m conversion aside)
-✔️ View-independent
+This transformation represents the object pose exactly as placed in the scene.
 
 ---
 
-## 2️⃣ Camera projection matrix — ✅ exported, but NOT applied to poses
+# Camera Projection Matrix
 
-The projection matrix is **computed and saved**, but **never used to modify object pose**.
+The projection matrix is computed during export but is **not applied** to the object pose.
 
-It is used only for:
+It is included for downstream applications such as:
 
-* downstream reprojection
-* rendering consistency
-* dataset consumers (e.g. BOP, NeRF, OpenGL-style pipelines)
+- Rendering
+- Reprojection
+- Dataset generation
+- Evaluation pipelines
 
-Conceptually:
-
-```text
-object pose:   World → Object
-view matrix:   World → Camera
-projection:    Camera → Image
-```
-
-You are exporting **all three**, but only the **pose** is used to compute object transforms.
-
----
-
-## 3️⃣ Where the projection matrix comes from
-
-Inside `utils.build_label_dict_for_image`, the projection matrix is derived from:
-
-* `vtk_camera`
-* `fx, fy, cx, cy`
-* image width / height
-* VTK’s OpenGL-style clip-space
-
-This is roughly:
-
-$$
-P = K \cdot [I|0]
-$$
-
-converted into a **4×4 OpenGL projection matrix**.
-
-That’s why you see values like:
+Example:
 
 ```json
 "camera_projection_matrix": [
-  [ 0.765, 0, -0.016, 0 ],
-  [ 0, 1.224, -0.040, 0 ],
-  [ 0, 0, -2066, -774241 ],
-  [ 0, 0, -1, 0 ]
+    [...],
+    [...],
+    [...],
+    [...]
 ]
 ```
 
-That matrix is **not used to compute**:
+The projection matrix does **not** modify:
 
-* object translation
-* object rotation
-* object scale
-
-It’s exported **for completeness**.
+- Object translation
+- Object rotation
+- Object scale
+- Exported transform matrix
 
 ---
 
-## 4️⃣ View matrix — also exported, not applied
+# Camera View Matrix
 
-Same story for:
+The exported view matrix represents the camera pose relative to the world.
+
+Example:
 
 ```json
 "camera_view_matrix": [
-  [ 1,  0,  0, 0 ],
-  [ 0, -1,  0, 0 ],
-  [ 0,  0, -1, 0 ],
-  [ 0,  0,  0, 1 ]
+    [...],
+    [...],
+    [...],
+    [...]
 ]
 ```
 
-This comes from:
+It is derived from the camera's:
 
-* camera position
-* focal point
-* view-up vector
-* VTK’s coordinate conventions
+- Position
+- Focal point
+- View-up vector
 
-Again:
-
-* ❌ not applied to object pose
-* ❌ not baked into transform_matrix
-* ✅ exported so downstream code can reproject
+Like the projection matrix, it is exported for downstream processing and is **not** applied to the exported object pose.
 
 ---
 
-## 5️⃣ The important guarantee 
-> *“Is the view / projection matrix already applied internally when exporting object pose?”*
+# Export Summary
 
-### ✅ Answer: **NO**
+| Data | Exported | Applied to Object Pose |
+|-------|:--------:|:----------------------:|
+| Object Transform | ✓ | ✓ |
+| Camera View Matrix | ✓ | ✗ |
+| Camera Projection Matrix | ✓ | ✗ |
 
-Your exported `transform_matrix` is:
-
-* **world → object**
-* **camera-agnostic**
-* **not projected**
-* **not view-transformed**
+The exported `transform_matrix` always represents the object's pose in world coordinates and remains independent of the camera.
 
 ---
-
-## Conclusion
-
-* **Object pose export:** ❌ does NOT use projection or view matrices
-* **Camera matrices export:** ✅ computed & saved, but **not applied**
-* **Rendering only:** projection/view affect visualization, not pose data
-
 
 # Applications
-## 1️⃣ Pose-estimation datasets (BOP, LINEMOD, YCB-V)
 
-### Used for:
+## Pose Estimation Datasets
 
-* Generating **2D keypoints**
-* Generating **segmentation masks**
-* Computing **ADD-S / reprojection error**
+Projection and view matrices are commonly used for:
 
-Example:
+- Rendering segmentation masks
+- Rendering depth maps
+- Generating bounding boxes
+- Computing reprojection error
+- ADD / ADD-S evaluation
+- Synthetic dataset generation
+
+Typical transformation:
 
 ```python
 p_cam = T_cam_obj @ p_obj
 p_img = K @ p_cam
 ```
 
-Or OpenGL-style:
+or
 
 ```python
 p_clip = P @ V @ T @ p_obj
 ```
 
-### Typical uses
+---
 
-* GT mask rendering
-* GT bounding boxes
-* Reprojection error evaluation
-* Synthetic dataset generation
+## Differentiable Rendering
 
-✔️ **Very common**
-✔️ **Exactly why BOP stores P and V**
+Rendering frameworks such as:
+
+- NeRF
+- D-NeRF
+- Gaussian Splatting
+
+use the projection matrix for:
+
+- Ray generation
+- Camera frustum construction
+- Pixel-to-ray mapping
+- Volume rendering
 
 ---
 
-## 2️⃣ Differentiable rendering (NeRF, D-NeRF, Gaussian Splatting)
+## Mesh Rendering
 
-### Used for:
+Rendering pipelines use the projection and view matrices to generate:
 
-* Ray generation
-* Volume rendering
-* Image-based optimization
+- RGB images
+- Depth images
+- Segmentation masks
 
-Projection matrix defines:
+These matrices are used only during rasterization and visualization.
 
-* ray directions
-* camera frustum
-* pixel-to-ray mapping
+---
 
-Example:
+## Reprojection-Based Optimization
+
+Pose refinement and optimization methods use projection matrices to minimize image-space errors.
+
+Typical objective:
+
+$$ \sum_i\left\lVert\pi\\left(PVTX_i\right)-x_i^{\text{gt}}\right\rVert $$ 
+
+where:
+
+- $\(P\)$ — Projection matrix
+- $\(V\)$ — View matrix
+- $\(T\)$ — Object pose
+- $\(\pi\)$ — Perspective projection
+
+---
+
+## Graphics Pipelines
+
+Graphics engines (OpenGL, Vulkan, Unreal Engine, Unity, etc.) use:
 
 ```text
-pixel → camera ray → world ray → volume integral
+Model → World → View → Projection → Screen
 ```
 
-✔️ **Essential**
-✔️ Cannot run without it
+for:
+
+- Perspective rendering
+- Depth testing
+- View-frustum culling
 
 ---
 
-## 3️⃣ Rendering meshes for visualization / dataset creation
+## SLAM and Visual Odometry
 
-### Used for:
+SLAM and SfM systems generally use camera intrinsics rather than an explicit projection matrix.
 
-* Rendering RGB images
-* Rendering depth maps
-* Rendering masks
-
-Code uses it here:
-
-```python
-render_mesh(camera=self.plotter.camera.copy())
-```
-
-Internally:
-
-* VTK uses **projection + view** to rasterize triangles
-
-✔️ **Used internally**
-✔️ But **not baked into pose**
-
----
-
-## 4️⃣ Reprojection-based loss functions (training time)
-
-Common in:
-
-* Pose refinement networks
-* Bundle adjustment
-* Tracking
-
-Loss:
-
-$$
-\sum_i\left\lVert\pi\\left(PVTX_i\right)-x_i^{\text{gt}}\right\rVert
-$$
-
-Where:
-
-* $\pi$ = perspective divide
-* $P$ = projection matrix
-
-✔️ **Training-time only**
-✔️ Never stored in final pose
-
----
-
-## 5️⃣ AR / VR / OpenGL / Game engines
-
-### Used for:
-
-* Correct perspective
-* Depth testing
-* View frustum culling
-
-Standard graphics pipeline:
-
-```text
-model → world → view → projection → clip → screen
-```
-
-✔️ Mandatory for GPU rendering
-✔️ Irrelevant for robotics math
-
----
-
-## 6️⃣ SLAM / VIO / SfM (indirect use)
-
-Projection matrix isn’t always stored explicitly, but **intrinsics are**.
-
-Used for:
-
-* Feature reprojection
-* Epipolar constraints
-* Jacobians
-
-Equivalent math:
+Typical projection:
 
 ```python
 u = fx * X / Z + cx
 v = fy * Y / Z + cy
 ```
 
-Which is just a **factored projection matrix**.
-
-✔️ Implicit usage
-✔️ Intrinsics ≈ projection
+which is mathematically equivalent to applying the camera projection matrix.
 
 ---
 
-## In tool specifically
+# Usage Within This Tool
 
-### Projection matrix is used for:
+## Projection and View Matrices
 
-* mesh rendering
-* image overlay
-* mask export
-* reprojection correctness
+Used for:
 
-### Projection matrix is **not used** for:
+- Mesh rendering
+- Image overlays
+- Segmentation mask generation
+- Reprojection consistency
 
-* computing `transform_matrix`
-* computing `location`
-* computing `quaternion`
-* updating actor pose
-* exporting object pose
+Not used for:
 
-Pose math lives here:
+- Computing `transform_matrix`
+- Computing object position
+- Computing object orientation
+- Updating actor pose
+- Exporting object pose
+
+All pose computation is based on:
 
 ```python
 actor.user_matrix
@@ -339,16 +254,12 @@ actor.user_matrix
 
 ---
 
-## Mental model
+# Summary
 
-* **Pose matrix** → “Where is the object in 3D?”
-* **View matrix** → “Where is the camera in 3D?”
-* **Projection matrix** → “How does 3D become pixels?”
+| Matrix | Purpose |
+|----------|---------|
+| **Object Transform** | Defines the object's pose in world coordinates |
+| **View Matrix** | Defines the camera pose relative to the world |
+| **Projection Matrix** | Projects 3D points into image pixels |
 
-Only the **last one touches images**.
-
----
-
-## Conclusion
-
-> The projection matrix is used whenever **pixels matter** (rendering, reprojection, evaluation), and is **never used** when only **3D pose** or **robot motion** matters.
+The exported object pose is independent of both the view and projection matrices. Camera matrices are included solely to support rendering, reprojection, visualization, and downstream dataset consumers.
