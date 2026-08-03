@@ -1,8 +1,8 @@
 # Object Pose Evaluation
-A repository for evaluating object pose w.r.t ground truth pose. This repo uses the [bop toolkit](https://github.com/thodan/bop_toolkit) for pose accuracy evaluation. 
+A repository for evaluating object pose w.r.t ground truth pose. This repo uses the [bop toolkit](https://github.com/thodan/bop_toolkit) along with custom scripts for pose accuracy evaluation and visualizations. 
 
 <div align="center">
-  <img src="media/rviz.png" width="400">
+  <img src="media/overall_add.png" width="1000">
 </div>
 
 ## Requirements
@@ -107,8 +107,7 @@ Per sequence ADD:
 python3 visualize_overall_heatmap_average_pose_error_add_white_overlay.py
 ```
 <div align="center">
-  <img src="media/rviz.png" width="400">
-  <img src="media/zed_coordinate_system.png" width="300">
+  <img src="media/overall_add.png" width="1000">
 </div>
 
 # Description of Evaluation Metrics 
