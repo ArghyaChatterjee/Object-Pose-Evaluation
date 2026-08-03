@@ -1,180 +1,127 @@
 # Understanding Pose Error
-This script is an **evaluation / sanity-check tool**: it compares a **ground-truth object pose** (from BOP/LMO JSON: `cam_R_m2c`, `cam_t_m2c`) against **estimated pose** (a 4×4 matrix you typed in), and reports:
 
-* **rotation error (degrees)**
-* **translation error (Euclidean distance, same units as `t` — here mm)**
+This script evaluates the accuracy of an estimated 6D object pose by comparing it against the ground-truth pose from a BOP/LMO annotation. It reports:
 
-That’s why at the end, you see:
+- **Rotation error** (degrees)
+- **Translation error** (Euclidean distance, typically in millimeters)
 
-* a printed GT 4×4 matrix
-* `4.6193...` (rotation error printed once)
-* then the final formatted line with rotation + translation error
+The script is intended as a simple sanity-check tool for validating manually annotated or estimated object poses.
 
----
+## Overview
 
-## What each part is doing
+The evaluation pipeline consists of the following steps:
 
-### 1) Printing settings
+1. Read the ground-truth pose (`cam_R_m2c`, `cam_t_m2c`) from a BOP-format JSON annotation.
+2. Convert the ground-truth pose into a 4×4 homogeneous transformation matrix.
+3. Compare it against an estimated 4×4 pose matrix.
+4. Compute:
+   - Angular difference between the two rotations.
+   - Euclidean distance between the two translations.
+5. Print the ground-truth pose and the resulting errors.
 
-```py
-np.set_printoptions(suppress=True, precision=4)
-```
+## Functions
 
-Just makes numpy print matrices nicely:
+### `convert_to_4x4(cam_R_m2c, cam_t_m2c, scale=1)`
 
-* no scientific notation
-* 4 decimals
+Constructs a homogeneous transformation matrix
 
----
+\[
+T =
+\begin{bmatrix}
+R & t \\
+0 & 1
+\end{bmatrix}
+\]
 
-### 2) Pose parsing: JSON → 4×4 transform
-
-You have two very similar functions:
-
-#### `convert_to_4x4(cam_R_m2c, cam_t_m2c, scale=1)`
-
-Takes a flattened 3×3 `cam_R_m2c` and a 3-vector `cam_t_m2c` and builds:
-
-$$
-T =\begin{bmatrix}R & t\0 & 1\end{bmatrix}
-$$
-
-(But note: you don’t actually use this function later.)
-
-#### `compute_matrix(data)`
-
-Reads `cam_R_m2c`, `cam_t_m2c`, `obj_id` from a dict and returns `(T, obj_id)`.
+from a flattened rotation matrix and translation vector.
 
 ---
 
-### 3) `process_scene_gt(json_data)`
+### `compute_matrix(data)`
 
-```py
-data = json.loads(json_data)
-T, obj_id = compute_matrix(data)
-print(T)
-return T
-```
+Extracts:
 
-So this takes a JSON string for one object pose (GT) and returns the GT 4×4 pose matrix.
+- `cam_R_m2c`
+- `cam_t_m2c`
+- `obj_id`
+
+from a BOP annotation and returns the corresponding 4×4 pose matrix.
 
 ---
 
-## 4) Pose error computation
+### `process_scene_gt(json_data)`
+
+Parses a single object annotation, generates the ground-truth pose matrix, prints it, and returns the matrix.
+
+---
 
 ### `rotation_angle_deg(R1, R2)`
 
-Computes the **geodesic angle** between two rotation matrices:
+Computes the geodesic angular distance between two rotation matrices using
 
-* Computes relative rotation: `R_delta = R2 @ R1.T`
-* Converts to angle using:
+\[
+\theta =
+\cos^{-1}
+\left(
+\frac{\operatorname{trace}(R_\Delta)-1}{2}
+\right)
+\]
 
-$$
-\theta = \cos^{-1}\left(\frac{\mathrm{trace}(R_\Delta) - 1}{2}\right)
-$$
+where
 
-Returns **degrees**.
+\[
+R_\Delta = R_2 R_1^T.
+\]
+
+The returned value is in **degrees**.
+
+---
 
 ### `pose_errors(T1, T2)`
 
-This compares two 4×4 poses:
+Computes:
 
-* `T1` = your `annotated_pose`
-* `T2` = GT pose from JSON
+- Rotation error (degrees)
+- Translation error (Euclidean distance)
 
-It computes rotation error **two ways** (redundantly):
+between two 4×4 transformation matrices.
 
-1. using `rotation_angle_deg(...)` and prints it
+Returns:
 
-```py
-ang_deg1 = rotation_angle_deg(R1, R2)
-print(ang_deg1)
+```python
+(rotation_error_deg, translation_error)
 ```
 
-2. using SciPy rotations:
+## Test Cases
 
-```py
-R_delta = R2 * R1.inv()
-ang_deg = np.degrees(R_delta.magnitude())
-```
+Functions named like
 
-Then translation error:
-
-```py
-eucli_dist = ||t2 - t1||
-```
-
-Returns: `(rotation_error_deg, translation_error_distance)`
-
-So your final numbers are:
-
-* **Angular distance ~ 4.64°**
-* **Translation error ~ 14.03 mm**
-
----
-
-## 5) The `image_000008_obj_0000XX()` functions
-
-Each of these is just a **hardcoded test case**:
-
-* `json_data` = GT pose for a specific object in image 000008
-* `annotated_pose` = your estimated pose matrix
-* compare them and print errors
-
-At the bottom:
-
-```py
+```python
 image_000008_obj_000010()
 ```
 
-So it runs only object **10**.
+contain hardcoded evaluation examples for individual object instances. Each function:
 
----
+1. Defines the ground-truth pose.
+2. Defines the estimated pose.
+3. Computes the pose error.
+4. Prints the evaluation results.
 
-## Why your output looks like that
+The script executes one of these test cases from the main section.
 
-You printed the GT matrix:
+## Example Output
 
 ```text
 Object ID 10:
-[[0.0194, 0.9854, 0.1690, 189.8814],
- ...
-]
+
+[[ ... ground truth pose ... ]]
+
+Angular distance (deg): 4.64
+Euclidean distance (mm): 14.03
 ```
 
-Then `pose_errors` prints the first rotation error method:
+## Notes
 
-```text
-4.619308...
-```
-
-Then you print the final summary using the SciPy rotation angle:
-
-```text
-Angular distance (deg): 4.64, Euclidean distance (mm): 14.03
-```
-
-(4.6193 vs 4.64 differs only due to rounding + two different computations.)
-
----
-
-## A couple of “gotchas” in this script
-
-1. **Units:** Your `cam_t_m2c` values look like **mm** (typical BOP). Your `estimated_pose` translations are also mm, so distance comes out in **mm**. If you ever convert one to meters, you must convert the other too.
-
-2. **Redundant / confusing naming:** you import `Rotation as R`, but also use `R` as a matrix variable name in other functions. It works because scopes differ, but it’s easy to mess up.
-
-3. **Bug / incomplete case:**
-   `image_000008_obj_000006()` calls:
-
-```py
-gt_pose = process_scene_gt()
-```
-
-but `process_scene_gt(json_data)` requires an argument — that function would crash if you uncomment it.
-
----
-
-## Summary
-
-It’s a **pose error checker**: for a given object instance, it converts GT pose JSON into a 4×4 transform and compares it against your annotated 4×4 pose, outputting **rotation error (deg)** and **translation error (mm)**.
+- Translation values follow the units used in the dataset (typically **millimeters** for BOP datasets).
+- The estimated pose should use the same coordinate frame and units as the ground truth.
+- Rotation error is reported in degrees, while translation error is reported as Euclidean distance.
