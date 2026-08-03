@@ -88,8 +88,8 @@ python3 offline_class_level_pose_distribution_visualizer.py
 ```
 
 <div align="center">
-  <img src="media/position_dist.png" width="50%">
-  <img src="media/rotation_dist.png" width="50%">
+  <img src="media/position_dist.png" width="49%">
+  <img src="media/rotation_dist.png" width="49%">
 </div>
 
 ### Visualize Instance-Level Pose Error 
