@@ -78,11 +78,6 @@ python3 scripts/compute_degree_cm.py
 
 ### Visualize Pose Distribution
 
-<div align="center">
-  <img src="media/rviz.png" width="400">
-  <img src="media/zed_coordinate_system.png" width="300">
-</div>
-
 Instance Level:
 ```
 python3 offline_instance_level_pose_distribution_visualizer.py
@@ -91,6 +86,11 @@ Category Level:
 ```
 python3 offline_class_level_pose_distribution_visualizer.py
 ```
+
+<div align="center">
+  <img src="media/position_dist.png" width="45%">
+  <img src="media/rotation_dist.png" width="45%">
+</div>
 
 ### Visualize Instance-Level Pose Error 
 
