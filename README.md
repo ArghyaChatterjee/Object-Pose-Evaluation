@@ -106,7 +106,8 @@ python3 visualize_heatmap_pose_error_adds_white_overlay.py
 ```
 
 <div align="center">
-  <img src="media/white_dynamic_heatmap.gif" width="1000">
+  <img src="media/rgb_dynamic_heatmap.gif" width="44%">
+  <img src="media/white_dynamic_heatmap.gif" width="49%">
 </div>
 
 Per sequence ADD:
