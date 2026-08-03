@@ -1,4 +1,4 @@
-<h1 align="center">Object Pose Evaluation</h1>
+# <div align="center">Object Pose Evaluation</div>
 
 A repository for evaluating object pose w.r.t ground truth pose. This repo uses the [bop toolkit](https://github.com/thodan/bop_toolkit) along with custom scripts for pose accuracy evaluation and visualizations. 
 
