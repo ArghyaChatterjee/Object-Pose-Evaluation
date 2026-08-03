@@ -7,7 +7,7 @@ from bop_toolkit_lib import pose_error
 
 
 GT_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/GroundTruthPose/trash_can_2/filtered/labels")
-EST_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/SupervisePose/trash_can_2/filtered/labels")
+EST_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/MegaPose/trash_can_2/filtered/labels")
 MESH_PATH = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/GroundTruthPose/trash_can_2/filtered/mesh/trash_can_2.obj")
 
 

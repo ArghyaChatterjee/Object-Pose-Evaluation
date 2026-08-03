@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+import json
+from pathlib import Path
+
+import numpy as np
+from bop_toolkit_lib import pose_error
+
+
+GT_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/GroundTruthPose/trash_can_2/filtered/labels")
+EST_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/MegaPose/trash_can_2/filtered/labels")
+
+
+# 180-degree rotational symmetry around object Z axis.
+# S_180_Z = np.array([
+#     [-1.0,  0.0, 0.0],
+#     [ 0.0, -1.0, 0.0],
+#     [ 0.0,  0.0, 1.0],
+# ], dtype=np.float64)
+
+# S_180_X = np.array([
+#     [1.0,  0.0,  0.0],
+#     [0.0, -1.0,  0.0],
+#     [0.0,  0.0, -1.0],
+# ], dtype=np.float64)
+
+S_180_Y = np.array([
+    [-1.0, 0.0,  0.0],
+    [ 0.0, 1.0,  0.0],
+    [ 0.0, 0.0, -1.0],
+], dtype=np.float64)
+
+SYMMETRY_ROTATIONS = [
+    np.eye(3, dtype=np.float64),
+    S_180_Y,
+]
+
+
+def load_pose(path):
+    with open(path, "r") as f:
+        data = json.load(f)
+
+    T = np.asarray(data["objects"][0]["transform_matrix"], dtype=np.float64)
+
+    R = T[:3, :3]
+    t = T[:3, 3]
+
+    return R, t
+
+
+def symmetry_aware_rotation_error_deg(R_est, R_gt):
+    errors = []
+
+    for S in SYMMETRY_ROTATIONS:
+        R_gt_sym = R_gt @ S
+        err = pose_error.re(R_est, R_gt_sym)
+        errors.append(err)
+
+    return min(errors)
+
+
+def main():
+    rot_errors = []
+    trans_errors_cm = []
+
+    success_5_5 = []
+    success_10_10 = []
+
+    for gt_path in sorted(GT_DIR.glob("*.json")):
+        est_path = EST_DIR / gt_path.name
+
+        if not est_path.exists():
+            print(f"[SKIP] Missing estimated pose: {est_path.name}")
+            continue
+
+        R_gt, t_gt = load_pose(gt_path)
+        R_est, t_est = load_pose(est_path)
+
+        rot_err_deg = symmetry_aware_rotation_error_deg(R_est, R_gt)
+        trans_err_cm = pose_error.te(t_est, t_gt) * 100.0
+
+        rot_errors.append(rot_err_deg)
+        trans_errors_cm.append(trans_err_cm)
+
+        success_5_5.append(rot_err_deg < 5.0 and trans_err_cm < 5.0)
+        success_10_10.append(rot_err_deg < 10.0 and trans_err_cm < 10.0)
+
+    if len(rot_errors) == 0:
+        print("[ERROR] No frames evaluated.")
+        return
+
+    print(f"Frames evaluated: {len(rot_errors)}")
+    print(f"Mean symmetry-aware rotation error: {np.mean(rot_errors):.4f} deg")
+    print(f"Mean translation error: {np.mean(trans_errors_cm):.4f} cm")
+    print(f"5 deg / 5 cm Accuracy: {np.mean(success_5_5) * 100.0:.4f} %")
+    print(f"10 deg / 10 cm Accuracy: {np.mean(success_10_10) * 100.0:.4f} %")
+
+
+if __name__ == "__main__":
+    main()

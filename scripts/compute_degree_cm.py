@@ -5,7 +5,7 @@ import numpy as np
 from bop_toolkit_lib import pose_error
 
 GT_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/GroundTruthPose/storage_container_2/filtered/labels")
-EST_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/SupervisePose/storage_container_2/filtered/labels")
+EST_DIR = Path("/home/arghya/ihmc-repos/ihmc-humanoid-labeler/humanoid_data/2d_3d_data/Paper_Recordings/MegaPose/storage_container_2/filtered/labels")
 
 
 def load_pose(path):
