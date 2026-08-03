@@ -94,7 +94,9 @@ python3 offline_class_level_pose_distribution_visualizer.py
 
 ### Visualize Instance-Level Pose Error 
 
-Visualize qualitative evaluation: For ADD
+Qualitative evaluation visualization. 
+
+For ADD:
 ```
 python3 visualize_heatmap_pose_error_add_white_overlay.py
 ```
@@ -102,6 +104,11 @@ For ADD-S:
 ```
 python3 visualize_heatmap_pose_error_adds_white_overlay.py
 ```
+
+<div align="center">
+  <img src="media/white_dynamic_heatmap.gif" width="1000">
+</div>
+
 Per sequence ADD:
 ```
 python3 visualize_overall_heatmap_average_pose_error_add_white_overlay.py
