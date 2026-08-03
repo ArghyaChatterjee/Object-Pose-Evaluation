@@ -6,6 +6,7 @@ A repository for evaluating object pose w.r.t ground truth pose. This repo uses 
   <img src="media/overall_add.png" width="1000">
 </div>
 
+# Pose Evaluation 
 ## Requirements
 
 This work was tested on Ubuntu 22.04 and Python versions 3.8-3.12.
