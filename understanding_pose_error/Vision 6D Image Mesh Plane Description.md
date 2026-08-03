@@ -1,13 +1,11 @@
 # Vision6D Image Mesh Plane Description
 
-<div align="center">
-  <img src="media/vision6d.png" width="400">
-  <img src="media/vision6d.webp" width="420">
-</div>
-
 This is **faking a pinhole camera in 3D space** so that **moving a mesh in 3D produces the same pixel motion as a real camera**, without doing real projection math.
 
----
+<div align="center">
+  <img src="../media/vision6d.png" width="400">
+  <img src="../media/vision6d.webp" width="420">
+</div>
 
 ## The real pinhole equation (ground truth)
 
@@ -22,8 +20,6 @@ So:
 * move object up in 3D (`Y ↑`) → pixel moves up
 * move object farther (`Z ↑`) → pixel motion shrinks
 * `f_y` controls the scale
-
----
 
 ## What Vision6D tool does instead 
 
@@ -44,7 +40,6 @@ $$
 \text{screen offset} \approx \frac{f_y \cdot Y}{Z}
 $$
 
----
 
 ## Why this works visually
 
@@ -64,20 +59,18 @@ you bake the focal length directly into the geometry.
 
 No manual projection needed.
 
----
 
 ## Why this is NOT a physical camera
 
 This setup:
 
-* ❌ ignores sensor size
-* ❌ ignores near/far planes
-* ❌ ignores lens properties
-* ❌ ignores metric units
+* Ignores sensor size
+* Ignores near/far planes
+* Ignores lens properties
+* Ignores metric units
 
 It only preserves **relative alignment**, which is exactly what labeling tools need.
 
----
 
 ## Why annotation tools love this trick
 
@@ -89,8 +82,6 @@ Because it gives you:
 * zero matrix math per frame
 
 All while “feeling” like a camera.
-
----
 
 ## Conclusion
 
