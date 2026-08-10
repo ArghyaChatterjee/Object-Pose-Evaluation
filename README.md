@@ -78,22 +78,6 @@ Compute Pose Error in Degree / CM:
 python3 scripts/compute_degree_cm.py
 ```
 
-### Visualize Pose Distribution
-
-Instance Level:
-```
-python3 offline_instance_level_pose_distribution_visualizer.py
-```
-Category Level:
-```
-python3 offline_class_level_pose_distribution_visualizer.py
-```
-
-<div align="center">
-  <img src="media/position_dist.png" width="49%">
-  <img src="media/rotation_dist.png" width="49%">
-</div>
-
 ### Visualize Instance-Level Pose Error 
 
 Qualitative evaluation visualization. 
@@ -118,6 +102,22 @@ python3 visualize_overall_heatmap_average_pose_error_add_white_overlay.py
 ```
 <div align="center">
   <img src="media/overall_add.png" width="1000">
+</div>
+
+### Visualize Pose Distribution
+
+Instance Level:
+```
+python3 offline_instance_level_pose_distribution_visualizer.py
+```
+Category Level:
+```
+python3 offline_class_level_pose_distribution_visualizer.py
+```
+
+<div align="center">
+  <img src="media/position_dist.png" width="49%">
+  <img src="media/rotation_dist.png" width="49%">
 </div>
 
 # Description of Evaluation Metrics 
