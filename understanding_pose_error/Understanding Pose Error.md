@@ -25,13 +25,13 @@ The evaluation pipeline consists of the following steps:
 
 Constructs a homogeneous transformation matrix
 
-\[
+$$
 T =
 \begin{bmatrix}
 R & t \\
 0 & 1
 \end{bmatrix}
-\]
+$$
 
 from a flattened rotation matrix and translation vector.
 
@@ -59,19 +59,15 @@ Parses a single object annotation, generates the ground-truth pose matrix, print
 
 Computes the geodesic angular distance between two rotation matrices using
 
-\[
-\theta =
-\cos^{-1}
-\left(
-\frac{\operatorname{trace}(R_\Delta)-1}{2}
-\right)
-\]
+$$
+\theta = \cos^{-1}\left(\frac{\mathrm{tr}(R_\Delta)-1}{2}\right)
+$$
 
 where
 
-\[
+$$
 R_\Delta = R_2 R_1^T.
-\]
+$$
 
 The returned value is in **degrees**.
 
